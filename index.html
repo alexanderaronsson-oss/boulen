@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bouleturnering 36 spelare</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 16px; }
+  h1 { text-align: center; color: #f5c518; font-size: 1.5rem; margin-bottom: 4px; letter-spacing: 1px; }
+  .subtitle { text-align: center; color: #aaa; font-size: 0.8rem; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .btn-export { padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; border: 2px solid #2ecc71; background: #16213e; color: #2ecc71; margin-left: auto; transition: all 0.2s; }
+  .btn-export:hover { background: #2ecc71; color: #1a1a2e; }
+  .tab { padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; border: 2px solid transparent; transition: all 0.2s; background: #16213e; color: #aaa; }
+  .tab.active { background: #f5c518; color: #1a1a2e; border-color: #f5c518; }
+  .tab:hover:not(.active) { border-color: #f5c518; color: #f5c518; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .setup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .group-card { background: #16213e; border-radius: 10px; padding: 14px; border: 1px solid #2a2a5a; }
+  .group-title { font-size: 1rem; font-weight: 700; color: #f5c518; margin-bottom: 10px; border-bottom: 1px solid #2a2a5a; padding-bottom: 6px; }
+  .team-input { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+  .team-num { min-width: 22px; color: #f5c518; font-weight: 700; font-size: 0.8rem; }
+  .team-input input { flex: 1; background: #0f3460; border: 1px solid #2a4a8a; border-radius: 5px; color: #eee; padding: 5px 8px; font-size: 0.82rem; }
+  .team-input input:focus { outline: none; border-color: #f5c518; }
+  .btn { padding: 9px 20px; border-radius: 7px; border: none; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.2s; }
+  .btn-primary { background: #f5c518; color: #1a1a2e; }
+  .btn-primary:hover { background: #ffd700; }
+  .group-section { margin-bottom: 20px; }
+  .group-header { font-size: 1rem; font-weight: 700; color: #f5c518; margin-bottom: 10px; }
+  .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .match-card { background: #16213e; border-radius: 9px; padding: 12px; border: 1px solid #2a2a5a; }
+  .match-meta { display: flex; gap: 6px; margin-bottom: 7px; align-items: center; flex-wrap: wrap; }
+  .match-time-badge { background: #0f3460; border: 1px solid #2a4a8a; border-radius: 5px; padding: 2px 8px; font-size: 0.75rem; color: #f5c518; font-weight: 700; letter-spacing: 0.5px; }
+  .match-lane-badge { background: #1a3a1a; border: 1px solid #2a6a2a; border-radius: 5px; padding: 2px 8px; font-size: 0.75rem; color: #2ecc71; font-weight: 600; }
+  .match-teams { display: flex; align-items: center; gap: 8px; }
+  .team-name { flex: 1; font-size: 0.85rem; font-weight: 600; text-align: center; }
+  .score-inputs { display: flex; gap: 6px; align-items: center; }
+  .score-input { width: 44px; text-align: center; background: #0f3460; border: 1px solid #2a4a8a; border-radius: 5px; color: #eee; padding: 4px; font-size: 1rem; font-weight: 700; }
+  .score-input:focus { outline: none; border-color: #f5c518; }
+  .vs { color: #f5c518; font-weight: 700; }
+  .match-winner { font-size: 0.7rem; text-align: center; margin-top: 5px; color: #2ecc71; min-height: 14px; }
+  .standings-wrap { overflow-x: auto; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead tr { background: #0f3460; }
+  th { padding: 8px 10px; text-align: left; color: #f5c518; font-size: 0.78rem; }
+  td { padding: 7px 10px; border-bottom: 1px solid #1f2a5a; }
+  tr:hover td { background: #1e2a5a; }
+  .qualified-a { background: rgba(46,204,113,0.1); }
+  .qualified-b { background: rgba(52,152,219,0.1); }
+  .pos-badge { display: inline-block; width: 20px; height: 20px; border-radius: 50%; text-align: center; line-height: 20px; font-size: 0.7rem; font-weight: 700; }
+  .badge-1, .badge-2 { background: #2ecc71; color: #fff; }
+  .badge-3, .badge-4 { background: #3498db; color: #fff; }
+  .info-box { background: #0f3460; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 0.8rem; color: #aaa; border-left: 3px solid #f5c518; }
+  .info-box strong { color: #f5c518; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.74rem; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .time-info { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .time-chip { background: #16213e; border-radius: 6px; padding: 6px 12px; font-size: 0.78rem; color: #aaa; border: 1px solid #2a2a5a; }
+  .time-chip strong { color: #f5c518; }
+  .playoff-section { margin-bottom: 24px; }
+  .playoff-title { font-size: 1rem; font-weight: 700; color: #f5c518; margin-bottom: 10px; border-left: 3px solid #f5c518; padding-left: 10px; }
+  .playoff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .playoff-match { background: #16213e; border-radius: 9px; padding: 12px; border: 1px solid #2a2a5a; }
+  .round-label { font-size: 0.7rem; color: #aaa; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .tbd { color: #666; font-style: italic; }
+  .section-label { font-weight: 700; color: #aaa; font-size: 0.8rem; margin: 12px 0 6px; }
+</style>
+</head>
+<body>
+<h1>🎯 Bouleturnering – 36 spelare</h1>
+<p class="subtitle">12 lag &bull; 3 grupper &bull; Gruppspel + Slutspel A &amp; B</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('setup')">⚙️ Lagnamn</div>
+  <div class="tab" onclick="showTab('matches')">🎮 Matcher</div>
+  <div class="tab" onclick="showTab('standings')">📊 Tabeller</div>
+  <div class="tab" onclick="showTab('playoff')">🏆 Slutspel</div>
+  <button class="btn-export" onclick="exportHTML()">💾 Spara resultat</button>
+</div>
+
+<div id="tab-setup" class="panel active">
+  <div class="info-box">
+    <strong>Upplägg:</strong> 36 spelare &rarr; 12 lag (3 spel/lag) &rarr; 3 grupper med 4 lag/grupp &rarr; 6 matcher per grupp = 18 matcher totalt i gruppspel.<br>
+    Ettan &amp; tvåan &rarr; <strong>Slutspel A</strong> &nbsp;|&nbsp; Trean &amp; fyran &rarr; <strong>Slutspel B</strong>
+  </div>
+  <div class="setup-grid" id="setup-grid"></div>
+  <button class="btn btn-primary" onclick="saveNames()">Bekräfta lagnamn &amp; gå till matcher</button>
+</div>
+
+<div id="tab-matches" class="panel">
+  <div class="time-info">
+    <div class="time-chip">Matchtid: <strong>20 min</strong></div>
+    <div class="time-chip">Paus: <strong>10 min</strong></div>
+    <div class="time-chip">Vinner: <strong>13 p eller flest vid tid</strong></div>
+    <div class="time-chip">Banor/grupp: <strong>2 st</strong></div>
+    <div class="time-chip">Start: <strong>13:00</strong></div>
+  </div>
+  <div class="info-box" style="margin-bottom:14px;">
+    <strong>Tidschema per grupp:</strong> Omgång 1: 13:00–13:20 &nbsp;|&nbsp; Omgång 2: 13:30–13:50 &nbsp;|&nbsp; Omgång 3: 14:00–14:20<br>
+    Gruppspelet klart: <strong>ca 14:30</strong> (inkl. sista pausen) &nbsp;&mdash;&nbsp; Alla tre grupper spelar parallellt.
+  </div>
+  <div id="matches-content"></div>
+</div>
+
+<div id="tab-standings" class="panel">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2ecc71"></div> Slutspel A (1:a &amp; 2:a)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div> Slutspel B (3:a &amp; 4:a)</div>
+  </div>
+  <div id="standings-content"></div>
+</div>
+
+<div id="tab-playoff" class="panel">
+  <div id="playoff-content"></div>
+</div>
+
+<script>
+var teams = [];
+var groupNames = ['Grupp A','Grupp B','Grupp C'];
+var scores = {};
+var playoffScores = {};
+
+// Init team names
+function initTeams() {
+  var lagnamn = [
+    '🔌 Fel Fas',
+    '🪚 Sned Kap',
+    '📐 Inte i Lod',
+    '🗂️ ÄTA-Laget',
+    '🎨 Två Strykningar',
+    '💥 Diamantborrarna',
+    '📋 Utan Anmärkning',
+    '🧱 Gjutet i Betong',
+    '🪛 Mer-kostnaderna',
+    '🏗️ Enligt Ritning',
+    '🪝 Hängande i Luften',
+    '⏰ Tidplanen Håller'
+  ];
+  teams = [];
+  for (var g = 0; g < 3; g++) {
+    for (var t = 0; t < 4; t++) {
+      var idx = g * 4 + t;
+      teams.push({ id: idx, group: g, name: lagnamn[idx] });
+    }
+  }
+}
+
+function getGroupTeams(g) {
+  return teams.filter(function(t){ return t.group === g; });
+}
+
+function getMatches(g) {
+  var gt = getGroupTeams(g);
+  var matches = [];
+  for (var i = 0; i < gt.length; i++)
+    for (var j = i+1; j < gt.length; j++)
+      matches.push({ id: 'g'+g+'_'+gt[i].id+'_'+gt[j].id, home: gt[i], away: gt[j] });
+  return matches;
+}
+
+// Tidschema: start 13:00, 2 banor per grupp, 30 min per slot (20 min match + 10 min paus)
+// Grupp A: bana 5 & 6, Grupp B: bana 8 & 9, Grupp C: bana 11 & 12
+var groupLanes = [[3,4],[6,7],[9,10]];
+function getMatchTime(matchIndex, group) {
+  // Correct slot mapping so no team plays twice in same slot
+  // matches in combinations order: (0,1)=0,(0,2)=1,(0,3)=2,(1,2)=3,(1,3)=4,(2,3)=5
+  // slot0: matches 0,5 | slot1: matches 1,4 | slot2: matches 2,3
+  var slotMap = [0, 1, 2, 2, 1, 0];
+  var laneMap = [0, 0, 0, 1, 1, 1];
+  var slot = slotMap[matchIndex];
+  var slotMinutes = slot * 30;
+  var startMinutes = 13 * 60 + slotMinutes;
+  var endMinutes = startMinutes + 20;
+  var bana = groupLanes[group][laneMap[matchIndex]];
+  return {
+    start: formatTime(startMinutes),
+    end: formatTime(endMinutes),
+    bana: bana
+  };
+}
+
+function formatTime(minutes) {
+  var h = Math.floor(minutes / 60);
+  var m = minutes % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+function renderSetup() {
+  var grid = document.getElementById('setup-grid');
+  grid.innerHTML = '';
+  for (var g = 0; g < 3; g++) {
+    var gt = getGroupTeams(g);
+    var card = document.createElement('div');
+    card.className = 'group-card';
+    var html = '<div class="group-title">🎳 ' + groupNames[g] + '</div>';
+    for (var i = 0; i < gt.length; i++) {
+      html += '<div class="team-input"><span class="team-num">Lag '+(i+1)+':</span><input type="text" id="name_'+gt[i].id+'" value="'+gt[i].name+'" maxlength="20"></div>';
+    }
+    card.innerHTML = html;
+    grid.appendChild(card);
+  }
+}
+
+function saveNames() {
+  for (var i = 0; i < teams.length; i++) {
+    var el = document.getElementById('name_'+teams[i].id);
+    if (el && el.value.trim()) teams[i].name = el.value.trim();
+  }
+  showTab('matches');
+}
+
+function renderMatches() {
+  var html = '';
+  for (var g = 0; g < 3; g++) {
+    var matches = getMatches(g);
+    html += '<div class="group-section"><div class="group-header">🎳 '+groupNames[g]+'</div><div class="matches-grid">';
+    for (var i = 0; i < matches.length; i++) {
+      var m = matches[i];
+      var s = scores[m.id] || { home:'', away:'' };
+      var t = getMatchTime(i, g);
+      html += '<div class="match-card">';
+      html += '<div class="match-meta">';
+      html += '<span class="match-time-badge">⏰ '+t.start+'–'+t.end+'</span>';
+      html += '<span class="match-lane-badge">Bana '+t.bana+'</span>';
+      html += '</div>';
+      html += '<div class="match-teams"><span class="team-name">'+m.home.name+'</span>';
+      html += '<div class="score-inputs">';
+      html += '<input class="score-input" type="number" min="0" max="13" id="sh_'+m.id+'" value="'+s.home+'" oninput="updateScore(\''+m.id+'\',\''+m.home.id+'\',\''+m.away.id+'\')">';
+      html += '<span class="vs">&ndash;</span>';
+      html += '<input class="score-input" type="number" min="0" max="13" id="sa_'+m.id+'" value="'+s.away+'" oninput="updateScore(\''+m.id+'\',\''+m.home.id+'\',\''+m.away.id+'\')">';
+      html += '</div><span class="team-name">'+m.away.name+'</span></div>';
+      html += '<div class="match-winner" id="mw_'+m.id+'">'+getWinnerText(m.id, m.home.name, m.away.name)+'</div></div>';
+    }
+    html += '</div></div>';
+  }
+  document.getElementById('matches-content').innerHTML = html;
+}
+
+function getWinnerText(matchId, hn, an) {
+  var s = scores[matchId];
+  if (!s || s.home==='' || s.away==='') return '';
+  var h = parseInt(s.home), a = parseInt(s.away);
+  if (isNaN(h)||isNaN(a)) return '';
+  if (h>a) return '🏆 '+hn+' vinner';
+  if (a>h) return '🏆 '+an+' vinner';
+  return '🤝 Oavgjort';
+}
+
+function updateScore(matchId) {
+  var sh = document.getElementById('sh_'+matchId);
+  var sa = document.getElementById('sa_'+matchId);
+  if (!sh||!sa) return;
+  scores[matchId] = { home: sh.value, away: sa.value };
+  for (var g=0;g<3;g++) {
+    var matches=getMatches(g);
+    for (var i=0;i<matches.length;i++) {
+      if (matches[i].id===matchId) {
+        var w=document.getElementById('mw_'+matchId);
+        if (w) w.innerHTML=getWinnerText(matchId,matches[i].home.name,matches[i].away.name);
+      }
+    }
+  }
+}
+
+function getStandings(g) {
+  var gt = getGroupTeams(g);
+  var matches = getMatches(g);
+  var stat = {};
+  for (var i=0;i<gt.length;i++) stat[gt[i].id]={team:gt[i],w:0,l:0,d:0,pf:0,pa:0,pts:0,played:0};
+  for (var j=0;j<matches.length;j++) {
+    var m=matches[j], s=scores[m.id];
+    if (!s||s.home===''||s.away==='') continue;
+    var h=parseInt(s.home),a=parseInt(s.away);
+    if (isNaN(h)||isNaN(a)) continue;
+    stat[m.home.id].pf+=h; stat[m.home.id].pa+=a; stat[m.home.id].played++;
+    stat[m.away.id].pf+=a; stat[m.away.id].pa+=h; stat[m.away.id].played++;
+    if (h>a){stat[m.home.id].w++;stat[m.home.id].pts+=2;stat[m.away.id].l++;}
+    else if(a>h){stat[m.away.id].w++;stat[m.away.id].pts+=2;stat[m.home.id].l++;}
+    else{stat[m.home.id].d++;stat[m.home.id].pts++;stat[m.away.id].d++;stat[m.away.id].pts++;}
+  }
+  return Object.values(stat).sort(function(a,b){
+    if (b.pts!==a.pts) return b.pts-a.pts;
+    return (b.pf-b.pa)-(a.pf-a.pa);
+  });
+}
+
+function renderStandings() {
+  var html='';
+  for (var g=0;g<3;g++) {
+    var s=getStandings(g);
+    html+='<div class="group-section"><div class="group-header">🎳 '+groupNames[g]+'</div><div class="standings-wrap"><table>';
+    html+='<thead><tr><th>#</th><th>Lag</th><th>S</th><th>V</th><th>O</th><th>F</th><th>+/-</th><th>Pts</th></tr></thead><tbody>';
+    for (var i=0;i<s.length;i++){
+      var pos=i+1;
+      var cls=pos<=2?'qualified-a':'qualified-b';
+      html+='<tr class="'+cls+'"><td><span class="pos-badge badge-'+pos+'">'+pos+'</span></td>';
+      html+='<td>'+s[i].team.name+'</td><td>'+s[i].played+'</td><td>'+s[i].w+'</td><td>'+s[i].d+'</td><td>'+s[i].l+'</td>';
+      var diff=s[i].pf-s[i].pa;
+      html+='<td>'+(diff>=0?'+':'')+diff+'</td><td><strong>'+s[i].pts+'</strong></td></tr>';
+    }
+    html+='</tbody></table></div></div>';
+  }
+  document.getElementById('standings-content').innerHTML=html;
+}
+
+function getQualifiers() {
+  var A=[],B=[];
+  for (var g=0;g<3;g++){
+    var s=getStandings(g);
+    A.push(s[0]?s[0].team:null,s[1]?s[1].team:null);
+    B.push(s[2]?s[2].team:null,s[3]?s[3].team:null);
+  }
+  return {A:A,B:B};
+}
+
+function getPlayoffWinnerObj(matchId, home, away) {
+  var s=playoffScores[matchId];
+  if (!s||s.home===''||s.away==='') return null;
+  var h=parseInt(s.home),a=parseInt(s.away);
+  if (isNaN(h)||isNaN(a)||h===a) return null;
+  return h>a?home:away;
+}
+
+function getPlayoffWinnerText(matchId, hn, an) {
+  var s=playoffScores[matchId];
+  if (!s||s.home===''||s.away==='') return '';
+  var h=parseInt(s.home),a=parseInt(s.away);
+  if (isNaN(h)||isNaN(a)) return '';
+  if (h>a) return '🏆 '+hn+' vinner';
+  if (a>h) return '🏆 '+an+' vinner';
+  return '🤝 Oavgjort';
+}
+
+function buildPlayoffMatch(matchId, hn, an, isGold) {
+  var s=playoffScores[matchId]||{home:'',away:''};
+  var wt=getPlayoffWinnerText(matchId,hn,an);
+  var border=isGold?'border-color:#f5c518;':'';
+  var rlColor=isGold?'color:#f5c518;font-weight:700;':'';
+  var label=isGold?'🏆 FINAL':'';
+  var timeBadge=isGold?'<div class="match-meta"><span class="match-time-badge">⏰ 16:00–16:20</span></div>':'';
+  return '<div class="playoff-match" style="'+border+'">'+timeBadge+(label?'<div class="round-label" style="'+rlColor+'">'+label+'</div>':'')
+    +'<div class="match-teams"><span class="team-name" style="font-size:0.82rem">'+hn+'</span>'
+    +'<div class="score-inputs"><input class="score-input" type="number" min="0" max="13" id="ph_'+matchId+'" value="'+s.home+'" oninput="updatePlayoff(\''+matchId+'\',\''+hn+'\',\''+an+'\')">'
+    +'<span class="vs">&ndash;</span>'
+    +'<input class="score-input" type="number" min="0" max="13" id="pa_'+matchId+'" value="'+s.away+'" oninput="updatePlayoff(\''+matchId+'\',\''+hn+'\',\''+an+'\')">'
+    +'</div><span class="team-name" style="font-size:0.82rem">'+an+'</span></div>'
+    +'<div class="match-winner" id="pmw_'+matchId+'" style="'+(isGold?'font-size:0.9rem;font-weight:700;color:#f5c518;':'')+'">'+wt+'</div></div>';
+}
+
+function renderBracket(label, qual, prefix) {
+  // qual[0]=1A, qual[1]=2A, qual[2]=1B, qual[3]=2B, qual[4]=1C, qual[5]=2C
+  // Alternativ 4: SF1=1A vs 2B, SF2=1B vs 2C, SF3=1C vs 2A
+  // 3 SF-vinnare → vinnaren med bäst poäng från gruppspelet får bye till final
+  // De andra två möts i en extra semifinal, vinnaren till final
+  var n=function(t,fb){return t?t.name:fb;};
+  var sf = [
+    {id:prefix+'_sf1', h:qual[0], a:qual[3], lbl:'Semifinal 1', desc:'1:a Grupp A vs 2:a Grupp B'},
+    {id:prefix+'_sf2', h:qual[2], a:qual[5], lbl:'Semifinal 2', desc:'1:a Grupp B vs 2:a Grupp C'},
+    {id:prefix+'_sf3', h:qual[4], a:qual[1], lbl:'Semifinal 3', desc:'1:a Grupp C vs 2:a Grupp A'}
+  ];
+
+  var sfHtml='<div class="matches-grid">';
+  for (var i=0;i<sf.length;i++){
+    var m=sf[i];
+    var hn=n(m.h,'TBD'), an=n(m.a,'TBD');
+    var s=playoffScores[m.id]||{home:'',away:''};
+    var wt=getPlayoffWinnerText(m.id,hn,an);
+    sfHtml+='<div class="playoff-match"><div class="match-meta"><span class="match-time-badge">⏰ 15:00–15:20</span></div><div class="round-label">'+m.lbl+'</div>'
+      +'<div style="font-size:0.7rem;color:#888;margin-bottom:5px;">'+m.desc+'</div>'
+      +'<div class="match-teams"><span class="team-name" style="font-size:0.82rem">'+hn+'</span>'
+      +'<div class="score-inputs"><input class="score-input" type="number" min="0" max="13" id="ph_'+m.id+'" value="'+s.home+'" oninput="updatePlayoff(\''+m.id+'\',\''+hn+'\',\''+an+'\')">'
+      +'<span class="vs">&ndash;</span>'
+      +'<input class="score-input" type="number" min="0" max="13" id="pa_'+m.id+'" value="'+s.away+'" oninput="updatePlayoff(\''+m.id+'\',\''+hn+'\',\''+an+'\')">'
+      +'</div><span class="team-name" style="font-size:0.82rem">'+an+'</span></div>'
+      +'<div class="match-winner" id="pmw_'+m.id+'">'+wt+'</div></div>';
+  }
+  sfHtml+='</div>';
+
+  // Räkna ut SF-vinnare
+  var w1=getPlayoffWinnerObj(prefix+'_sf1',sf[0].h,sf[0].a);
+  var w2=getPlayoffWinnerObj(prefix+'_sf2',sf[1].h,sf[1].a);
+  var w3=getPlayoffWinnerObj(prefix+'_sf3',sf[2].h,sf[2].a);
+
+  // Bäst SF-vinnare (flest gruppspelspoäng) → bye till final
+  // Vi identifierar bye-laget baserat på totalpoäng i gruppspelet
+  var byeTeam=null, extraSFh=null, extraSFa=null;
+  var winners=[w1,w2,w3];
+  var winnerPts=winners.map(function(t){ return t?getTeamGroupPoints(t):0; });
+  var byeIdx=0;
+  for(var k=1;k<3;k++) if(winnerPts[k]>winnerPts[byeIdx]) byeIdx=k;
+  byeTeam=winners[byeIdx];
+  var others=[];
+  for(var k=0;k<3;k++) if(k!==byeIdx) others.push(winners[k]);
+  extraSFh=others[0]; extraSFa=others[1];
+
+  var byeName=n(byeTeam,'Bästa SF-vinnare (flest gruppspelspoäng)');
+  var extraHn=n(extraSFh,'Vinnare SF'), extraAn=n(extraSFa,'Vinnare SF');
+
+  var extraId=prefix+'_extra';
+  var wExtra=getPlayoffWinnerObj(extraId,extraSFh,extraSFa);
+  var extraHtml='<div class="playoff-grid">'
+    +'<div class="playoff-match">'
+    +'<div class="match-meta"><span class="match-time-badge">⏰ 15:30–15:50</span></div>'
+    +'<div class="round-label">Extra semifinal</div>'
+    +'<div style="font-size:0.7rem;color:#888;margin-bottom:5px;">De två övriga SF-vinnarna – vinnaren möter bye-laget i finalen</div>'
+    +'<div class="match-teams"><span class="team-name" style="font-size:0.82rem">'+extraHn+'</span>'
+    +'<div class="score-inputs"><input class="score-input" type="number" min="0" max="13" id="ph_'+extraId+'" value="'+(playoffScores[extraId]||{home:''}).home+'" oninput="updatePlayoff(\''+extraId+'\',\''+extraHn+'\',\''+extraAn+'\')">'
+    +'<span class="vs">&ndash;</span>'
+    +'<input class="score-input" type="number" min="0" max="13" id="pa_'+extraId+'" value="'+(playoffScores[extraId]||{away:''}).away+'" oninput="updatePlayoff(\''+extraId+'\',\''+extraHn+'\',\''+extraAn+'\')">'
+    +'</div><span class="team-name" style="font-size:0.82rem">'+extraAn+'</span></div>'
+    +'<div class="match-winner" id="pmw_'+extraId+'">'+getPlayoffWinnerText(extraId,extraHn,extraAn)+'</div>'
+    +'</div>'
+    +'<div class="playoff-match" style="background:#0f2a0f;border-color:#2a5a2a;">'
+    +'<div class="round-label" style="color:#2ecc71;">BYE – direkt till final</div>'
+    +'<div style="font-size:0.82rem;font-weight:700;color:#2ecc71;padding:8px 0;">🎯 '+byeName+'</div>'
+    +'<div style="font-size:0.7rem;color:#888;">Bäst gruppspelspoäng bland SF-vinnarna</div>'
+    +'</div>'
+    +'</div>';
+
+  var finHn=n(wExtra,'Vinnare extra SF'), finAn=byeName;
+  var finalId=prefix+'_final';
+  var finHtml='<div class="playoff-grid">'+buildPlayoffMatch(finalId,finHn,finAn,true)+'</div>';
+
+  var qualList='1A: '+n(qual[0],'–')+' &nbsp;|&nbsp; 2A: '+n(qual[1],'–')+' &nbsp;|&nbsp; 1B: '+n(qual[2],'–')+' &nbsp;|&nbsp; 2B: '+n(qual[3],'–')+' &nbsp;|&nbsp; 1C: '+n(qual[4],'–')+' &nbsp;|&nbsp; 2C: '+n(qual[5],'–');
+
+  return '<div class="playoff-section"><div class="playoff-title">'+label+'</div>'
+    +'<div style="font-size:0.75rem;color:#aaa;margin-bottom:10px;">'+qualList+'</div>'
+    +'<div class="section-label">SEMIFINALER (3 st – korsvist mellan grupperna)</div>'+sfHtml
+    +'<div class="section-label">EXTRA SEMIFINAL + BYE (bästa SF-vinnaren går direkt till final)</div>'+extraHtml
+    +'<div class="section-label">🏆 FINAL</div>'+finHtml
+    +'</div>';
+}
+
+function getTeamGroupPoints(team) {
+  if (!team) return 0;
+  var g=team.group;
+  var standings=getStandings(g);
+  for(var i=0;i<standings.length;i++) if(standings[i].team.id===team.id) return standings[i].pts;
+  return 0;
+}
+
+function renderPlayoff() {
+  var q=getQualifiers();
+  document.getElementById('playoff-content').innerHTML=
+    renderBracket('🥇 SLUTSPEL A',q.A,'A')+
+    renderBracket('🥈 SLUTSPEL B',q.B,'B');
+}
+
+function updatePlayoff(matchId, hn, an) {
+  var h=document.getElementById('ph_'+matchId);
+  var a=document.getElementById('pa_'+matchId);
+  if (!h||!a) return;
+  playoffScores[matchId]={home:h.value,away:a.value};
+  var w=document.getElementById('pmw_'+matchId);
+  if (w) w.innerHTML=getPlayoffWinnerText(matchId,hn,an);
+}
+
+function showTab(name) {
+  var names=['setup','matches','standings','playoff'];
+  var tabs=document.querySelectorAll('.tab');
+  for (var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active',names[i]===name);
+  var panels=document.querySelectorAll('.panel');
+  for (var j=0;j<panels.length;j++) panels[j].classList.remove('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='matches') renderMatches();
+  if (name==='standings') renderStandings();
+  if (name==='playoff') renderPlayoff();
+}
+
+function exportHTML() {
+  // Serialize current scores and playoffScores into the HTML
+  var scoresJSON = JSON.stringify(scores);
+  var playoffJSON = JSON.stringify(playoffScores);
+  var teamsJSON = JSON.stringify(teams.map(function(t){ return {id:t.id, group:t.group, name:t.name}; }));
+
+  var html = document.documentElement.outerHTML;
+
+  // Inject saved state just before </body>
+  var injection = '<script>window.__savedScores='+scoresJSON+';window.__savedPlayoff='+playoffJSON+';window.__savedTeams='+teamsJSON+';<\/script>';
+  html = html.replace('</body>', injection + '</body>');
+
+  var blob = new Blob([html], {type: 'text/html'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'index.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+initTeams();
+renderSetup();
+
+// Restore saved state if present
+if (window.__savedScores) scores = window.__savedScores;
+if (window.__savedPlayoff) playoffScores = window.__savedPlayoff;
+if (window.__savedTeams) {
+  window.__savedTeams.forEach(function(t) {
+    var found = teams.find(function(x){ return x.id === t.id; });
+    if (found) found.name = t.name;
+  });
+}
+</script>
+</body>
+</html>
